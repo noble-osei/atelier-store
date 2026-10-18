@@ -1,0 +1,654 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Atelier design system
+   Principles: monochrome palette, photography carries the color, quiet
+   type with small uppercase labels, square corners, 1px hairlines, no
+   shadows, generous whitespace, and full-bleed media.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Raw tokens
+   Custom CSS reads these directly. `.theme-inverse` redefines them, so any
+   section (a dark band, text over a photo) flips without new classes.
+   -------------------------------------------------------------------------- */
+:root {
+  /* Color */
+  --canvas: #ffffff;
+  --ink: #000000;
+  --ink-muted: #666666; /* 5.7:1 on white, safe for body copy */
+  --ink-subtle: #8a8a8a; /* 3.4:1, placeholders, disabled, large text only */
+  --surface: #f5f5f5; /* product image backdrop */
+  --surface-strong: #ebebeb;
+  --line: #e6e6e6; /* hairlines and dividers */
+  --line-strong: #8a8a8a; /* form controls (meets 3:1 non-text contrast) */
+  --danger: #b3261e;
+  --success: #1e6b3a;
+  --scrim: rgb(0 0 0 / 0.35); /* overlays on imagery and drawers */
+
+  /* Layout */
+  --gutter: clamp(1rem, 0.55rem + 1.9vw, 2.5rem);
+  --section-y: clamp(3rem, 1.9rem + 4.6vw, 7.5rem);
+  --grid-gap-x: clamp(0.25rem, 0.1rem + 0.6vw, 0.75rem);
+  --grid-gap-y: clamp(2rem, 1.6rem + 1.6vw, 3.5rem);
+  --header-h: 3.5rem;
+  --control-h: 3rem; /* 48px minimum touch target */
+}
+
+@media (width >= 64rem) {
+  :root {
+    --header-h: 4.5rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. Tailwind theme
+   -------------------------------------------------------------------------- */
+@theme static {
+  /* Monochrome only: drop Tailwind's default palette so off-system colors
+     can't creep in. White and black stay for absolute needs. */
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  /* Square corners everywhere. `rounded-full` remains for avatars, dots and
+     swatches. */
+  --radius-*: initial;
+  --radius-full: calc(infinity * 1px);
+
+  /* Flat surfaces. One shadow for floating layers (drawers, popovers). */
+  --shadow-*: initial;
+  --shadow-overlay: 0 0 2.5rem rgb(0 0 0 / 0.08);
+
+  /* Type scale. Small, precise UI type plus fluid editorial display sizes. */
+  --text-label: 0.6875rem; /* 11px, uppercase UI labels, nav, buttons */
+  --text-label--line-height: 1rem;
+  --text-label--letter-spacing: 0.1em;
+  --text-caption: 0.75rem; /* 12px, meta, prices in grids */
+  --text-caption--line-height: 1.125rem;
+  --text-body-sm: 0.8125rem; /* 13px */
+  --text-body-sm--line-height: 1.25rem;
+  --text-body: 0.875rem; /* 14px, default body */
+  --text-body--line-height: 1.375rem;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.5rem;
+  --text-title: 1.125rem; /* product name on detail page */
+  --text-title--line-height: 1.5rem;
+  --text-heading-sm: clamp(1.25rem, 1.15rem + 0.45vw, 1.5rem);
+  --text-heading-sm--line-height: 1.25;
+  --text-heading: clamp(1.5rem, 1.2rem + 1.3vw, 2.25rem);
+  --text-heading--line-height: 1.15;
+  --text-heading--letter-spacing: -0.01em;
+  --text-display: clamp(2.25rem, 1.55rem + 3vw, 4rem);
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.02em;
+  --text-display-xl: clamp(3rem, 1.2rem + 7.7vw, 7.5rem);
+  --text-display-xl--line-height: 0.95;
+  --text-display-xl--letter-spacing: -0.03em;
+
+  --tracking-label: 0.1em;
+  --tracking-wide-label: 0.16em;
+
+  /* Containers (`max-w-site`, `max-w-content`, ...) */
+  --container-site: 120rem; /* 1920px, outer frame for full layouts */
+  --container-content: 90rem; /* 1440px, standard page content */
+  --container-narrow: 60rem; /* checkout, account, forms */
+  --container-prose: 40rem; /* long-form reading */
+
+  --breakpoint-3xl: 120rem;
+
+  /* Media ratios */
+  --aspect-product: 4 / 5;
+  --aspect-portrait: 3 / 4;
+  --aspect-landscape: 3 / 2;
+  --aspect-wide: 21 / 9;
+
+  /* Motion: slow, soft and decelerating */
+  --ease-luxe: cubic-bezier(0.2, 0, 0, 1);
+  --animate-fade-in: fade-in 600ms var(--ease-luxe) both;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* Tokens that point at runtime variables. `inline` keeps the var() in each
+   utility, so `.theme-inverse` overrides reach Tailwind classes too. */
+@theme inline {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --color-canvas: var(--canvas);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-scrim: var(--scrim);
+
+  /* Fluid spacing: `px-gutter`, `py-section`, `gap-x-grid`, `top-header` */
+  --spacing-gutter: var(--gutter);
+  --spacing-section: var(--section-y);
+  --spacing-grid: var(--grid-gap-x);
+  --spacing-grid-y: var(--grid-gap-y);
+  --spacing-header: var(--header-h);
+  --spacing-control: var(--control-h);
+}
+
+/* --------------------------------------------------------------------------
+   3. Base
+   -------------------------------------------------------------------------- */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--line);
+  }
+
+  html {
+    color-scheme: light;
+    scroll-padding-top: var(--header-h);
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--ink);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    overflow-x: clip; /* lets `.full-bleed` break out without side scroll */
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 400; /* headings get presence from size, not weight */
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  label[for] {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--ink);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background-color: var(--ink);
+    color: var(--canvas);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   4. Components: buttons, links, form controls
+   Plain classes in the components layer, so any Tailwind utility overrides
+   them (`btn btn-primary w-full md:w-auto`).
+   -------------------------------------------------------------------------- */
+@layer components {
+  /* Buttons --------------------------------------------------------------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: var(--control-h);
+    padding-inline: 1.75rem;
+    border: 1px solid transparent;
+    font-size: var(--text-label);
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    white-space: nowrap;
+    user-select: none;
+    transition-property: color, background-color, border-color, opacity;
+    transition-duration: 250ms;
+    transition-timing-function: var(--ease-luxe);
+  }
+
+  .btn:disabled,
+  .btn[aria-disabled="true"] {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  /* Solid: the one main action per view (add to bag, checkout) */
+  .btn-primary {
+    background-color: var(--ink);
+    border-color: var(--ink);
+    color: var(--canvas);
+  }
+  .btn-primary:hover {
+    background-color: color-mix(in oklab, var(--ink) 78%, var(--canvas));
+    border-color: color-mix(in oklab, var(--ink) 78%, var(--canvas));
+  }
+
+  /* Outline: secondary actions; fills in on hover */
+  .btn-secondary {
+    background-color: transparent;
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+  .btn-secondary:hover {
+    background-color: var(--ink);
+    color: var(--canvas);
+  }
+
+  /* Text: the quiet "Discover" call to action under imagery */
+  .btn-text {
+    min-height: auto;
+    padding: 0.25rem 0;
+    background: none;
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.4em;
+    transition-property: text-decoration-color;
+  }
+  .btn-text:hover {
+    text-decoration-color: transparent;
+  }
+
+  .btn-sm {
+    min-height: 2.5rem;
+    padding-inline: 1.25rem;
+  }
+  .btn-lg {
+    min-height: 3.5rem;
+    padding-inline: 2.5rem;
+  }
+  .btn-block {
+    width: 100%;
+  }
+  .btn-icon {
+    width: var(--control-h);
+    padding-inline: 0;
+  }
+
+  /* Links ----------------------------------------------------------------- */
+  /* Inline link in running text: hairline underline that fades on hover */
+  .link {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    text-decoration-color: currentColor;
+    transition: text-decoration-color 200ms var(--ease-luxe);
+  }
+  .link:hover {
+    text-decoration-color: transparent;
+  }
+
+  /* Quiet link (footer, product meta): underline only on hover */
+  .link-quiet {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 200ms var(--ease-luxe);
+  }
+  .link-quiet:hover {
+    text-decoration-color: currentColor;
+  }
+
+  /* Navigation link: uppercase label with a rule that draws in on hover and
+     stays for the current page */
+  .nav-link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    font-size: var(--text-label);
+    line-height: var(--text-label--line-height);
+    font-weight: 500;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0.625rem;
+    height: 1px;
+    background-color: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 300ms var(--ease-luxe);
+  }
+  .nav-link:hover::after,
+  .nav-link[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+
+  /* Form controls ----------------------------------------------------------- */
+  .input,
+  .select,
+  .textarea {
+    width: 100%;
+    min-height: var(--control-h);
+    padding-inline: 1rem;
+    border: 1px solid var(--line-strong);
+    background-color: var(--canvas);
+    color: var(--ink);
+    font-size: 1rem; /* 16px on phones stops iOS from zooming on focus */
+    transition: border-color 200ms var(--ease-luxe);
+  }
+  @media (width >= 48rem) {
+    .input,
+    .select,
+    .textarea {
+      font-size: var(--text-body);
+    }
+  }
+  .textarea {
+    padding-block: 0.75rem;
+    min-height: 8rem;
+  }
+  .input::placeholder,
+  .textarea::placeholder {
+    color: var(--ink-subtle);
+  }
+  .input:hover,
+  .select:hover,
+  .textarea:hover,
+  .input:focus,
+  .select:focus,
+  .textarea:focus {
+    border-color: var(--ink);
+  }
+  .input:focus-visible,
+  .select:focus-visible,
+  .textarea:focus-visible {
+    outline: none; /* the black border is the focus indicator */
+  }
+  .input[aria-invalid="true"],
+  .select[aria-invalid="true"],
+  .textarea[aria-invalid="true"] {
+    border-color: var(--danger);
+  }
+
+  .field-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+    color: var(--ink);
+  }
+  .field-hint {
+    margin-top: 0.5rem;
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+    color: var(--ink-muted);
+  }
+  .field-error {
+    margin-top: 0.5rem;
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+    color: var(--danger);
+  }
+
+  /* Small bordered tag: "New", "Limited", "Sold out" */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid currentColor;
+    font-size: 0.625rem;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5. Primitives
+   Single-purpose utilities. Custom utilities accept variants, e.g.
+   `md:container-content` or `lg:grid-products`.
+   -------------------------------------------------------------------------- */
+
+/* Typography ---------------------------------------------------------------- */
+@utility type-label {
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  font-weight: 500;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* Small uppercase kicker above a heading, e.g. a collection or category */
+@utility type-eyebrow {
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  font-weight: 500;
+  letter-spacing: var(--tracking-wide-label);
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+/* Editorial serif for campaign headlines; use sparingly */
+@utility type-editorial {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+@utility type-price {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Containers ---------------------------------------------------------------- */
+@utility container-site {
+  width: 100%;
+  max-width: var(--container-site);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+@utility container-content {
+  width: 100%;
+  max-width: var(--container-content);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+@utility container-narrow {
+  width: 100%;
+  max-width: var(--container-narrow);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+@utility container-prose {
+  width: 100%;
+  max-width: var(--container-prose);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* Breaks a child out of any container to the full viewport width */
+@utility full-bleed {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
+/* Vertical rhythm between page sections */
+@utility section {
+  padding-block: var(--section-y);
+}
+
+/* Grids --------------------------------------------------------------------- */
+/* Product listing: 2 columns on phones, 3 on tablets, 4 on desktop, with a
+   tight column gap so images read as one continuous wall */
+@utility grid-products {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--grid-gap-x);
+  row-gap: var(--grid-gap-y);
+
+  @variant md {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  @variant xl {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* 12-column editorial grid for mixed image and text layouts */
+@utility grid-editorial {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: var(--gutter);
+
+  @variant md {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+}
+
+/* Horizontal snap rail: carousels such as "You may also like". It shows a
+   peek of the next card on small screens. */
+@utility rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 72%;
+  column-gap: var(--grid-gap-x);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--gutter);
+  scrollbar-width: none;
+
+  & > * {
+    scroll-snap-align: start;
+  }
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  @variant sm {
+    grid-auto-columns: 45%;
+  }
+  @variant lg {
+    grid-auto-columns: calc((100% - 3 * var(--grid-gap-x)) / 4);
+  }
+}
+
+/* Media --------------------------------------------------------------------- */
+/* Product image frame: fixed 4:5 ratio on a light grey backdrop so mixed
+   photography lines up in grids */
+@utility media-product {
+  position: relative;
+  aspect-ratio: var(--aspect-product);
+  overflow: hidden;
+  background-color: var(--surface);
+
+  & :where(img, video, picture) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+/* Cut-out product shots: fit the whole object, and blend white backgrounds
+   into the grey frame */
+@utility media-contain {
+  & :where(img) {
+    object-fit: contain;
+    mix-blend-mode: multiply;
+  }
+}
+
+/* Campaign hero: portrait on phones, nearly full viewport from tablet up */
+@utility media-hero {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: var(--aspect-product);
+  background-color: var(--surface-strong);
+
+  & :where(img, video, picture) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  @variant md {
+    aspect-ratio: auto;
+    height: calc(100svh - var(--header-h));
+    min-height: 32rem;
+  }
+}
+
+/* Gradient that keeps text over a photo legible */
+@utility scrim-bottom {
+  background-image: linear-gradient(to top, rgb(0 0 0 / 0.45), transparent 60%);
+}
+
+/* Chrome -------------------------------------------------------------------- */
+/* Header grid: nav | centered wordmark | actions */
+@utility site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  height: var(--header-h);
+  padding-inline: var(--gutter);
+  background-color: var(--canvas);
+  border-bottom: 1px solid var(--line);
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Theme scope: flips the palette for dark bands, footers, or text placed
+   over imagery. Every token-based class inside follows automatically. */
+@utility theme-inverse {
+  --canvas: #000000;
+  --ink: #ffffff;
+  --ink-muted: #b3b3b3;
+  --ink-subtle: #8a8a8a;
+  --surface: #141414;
+  --surface-strong: #1f1f1f;
+  --line: rgb(255 255 255 / 0.2);
+  --line-strong: #8a8a8a;
+  color: var(--ink);
+}
