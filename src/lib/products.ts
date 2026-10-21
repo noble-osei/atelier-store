@@ -5,6 +5,8 @@ import type { Image } from "./images";
 
 export type Color = { name: string; value: string };
 
+export type Category = { slug: string; name: string };
+
 // One-size products have a single "One size" entry.
 export type Size = { label: string; stock: number };
 
@@ -13,6 +15,7 @@ export type Product = {
   reference: string;
   name: string;
   category: string;
+  categorySlug: string;
   price: number;
   badge?: "New" | "Limited" | "Exclusive";
   /** First image is the primary shot used in grids. */
@@ -48,6 +51,69 @@ export function getProductStock(product: Product): StockState {
 
 export function isOneSize(product: Product) {
   return product.sizes.length === 1 && product.sizes[0].label === ONE_SIZE;
+}
+
+/* Search ------------------------------------------------------------------ */
+
+export const SEARCH_MAX_LENGTH = 100;
+
+function normalize(text: string) {
+  return text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+/** Lowercased, accent-free words of a query; empty when it has none. */
+export function searchTerms(query: string) {
+  return normalize(query.slice(0, SEARCH_MAX_LENGTH)).split(/\s+/).filter(Boolean);
+}
+
+/**
+ * Products matching every term, best first. A term can match the name, category,
+ * reference, colors, badge or the copy; name hits rank highest. Ties keep catalog
+ * order.
+ */
+export function searchProducts(products: Product[], query: string): Product[] {
+  const terms = searchTerms(query);
+  if (terms.length === 0) return [];
+
+  const ranked: { product: Product; score: number }[] = [];
+  for (const product of products) {
+    const fields = [
+      { text: normalize(product.name), weight: 4 },
+      { text: normalize(product.category), weight: 3 },
+      {
+        text: normalize(
+          [product.reference, product.badge, ...product.colors.map((c) => c.name)]
+            .filter(Boolean)
+            .join(" "),
+        ),
+        weight: 2,
+      },
+      {
+        text: normalize([product.description, ...product.details].join(" ")),
+        weight: 1,
+      },
+    ];
+
+    let score = 0;
+    for (const term of terms) {
+      const best = Math.max(
+        0,
+        ...fields.filter((f) => f.text.includes(term)).map((f) => f.weight),
+      );
+      if (best === 0) {
+        score = 0;
+        break;
+      }
+      score += best;
+    }
+    if (score > 0) ranked.push({ product, score });
+  }
+
+  // Array.prototype.sort is stable, so equal scores keep catalog order.
+  return ranked.sort((a, b) => b.score - a.score).map((r) => r.product);
 }
 
 /* Price ------------------------------------------------------------------- */

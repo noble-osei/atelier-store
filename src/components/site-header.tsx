@@ -34,13 +34,13 @@ export function SiteHeader() {
       </Link>
 
       <div className="flex items-center justify-end gap-1 md:gap-3">
-        <a
-          href="#"
+        <Link
+          href="/search"
           className="inline-flex size-11 items-center justify-center"
           aria-label="Search"
         >
           <SearchIcon />
-        </a>
+        </Link>
         <a
           href="#"
           className="inline-flex size-11 items-center justify-center max-md:hidden"

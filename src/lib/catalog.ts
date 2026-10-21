@@ -18,10 +18,10 @@ export type Story = {
 };
 
 export const navigation = [
-  { label: "New In", href: "/#new-in" },
+  { label: "New In", href: "/new-arrivals" },
   { label: "Women", href: "/#collections" },
   { label: "Men", href: "/#collections" },
-  { label: "Bags", href: "/#spotlight" },
+  { label: "Bags", href: "/categories/bags" },
   { label: "Accessories", href: "/#categories" },
   { label: "Journal", href: "/#journal" },
 ] as const;

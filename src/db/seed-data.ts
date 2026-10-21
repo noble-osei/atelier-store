@@ -13,7 +13,8 @@ function oneSize(stock: number): Size[] {
   return [{ label: ONE_SIZE, stock }];
 }
 
-export const seedProducts: Product[] = [
+// Category slugs are derived from the name when seeding.
+export const seedProducts: Omit<Product, "categorySlug">[] = [
   {
     slug: "biker-jacket",
     reference: "AT-RTW-0412",

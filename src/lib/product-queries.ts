@@ -1,11 +1,11 @@
 import "server-only";
 
-import { asc, eq, inArray, type SQL } from "drizzle-orm";
+import { asc, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
-import { products, productStock } from "@/db/schema";
-import type { Product } from "./products";
+import { categories, products, productStock } from "@/db/schema";
+import { searchProducts, type Category, type Product } from "./products";
 
 // Merchandising picks stay in code, like the rest of the editorial content.
 const NEW_ARRIVAL_SLUGS = [
@@ -30,14 +30,18 @@ function cacheProducts() {
 }
 
 // Every read loads the category and stock rows (in size order) with the product.
-function findProducts(where?: SQL) {
+function findProducts(
+  where?: SQL,
+  { orderBy = [asc(products.id)], limit }: { orderBy?: SQL[]; limit?: number } = {},
+) {
   return db.query.products.findMany({
     where,
     with: {
       category: true,
       stock: { orderBy: asc(productStock.position) },
     },
-    orderBy: asc(products.id),
+    orderBy,
+    limit,
   });
 }
 
@@ -52,6 +56,7 @@ function toProduct(row: ProductRow): Product {
     reference: row.reference,
     name: row.name,
     category: row.category.name,
+    categorySlug: row.category.slug,
     price: row.priceCents / 100,
     badge: row.badge ?? undefined,
     images: [first, ...rest],
@@ -85,6 +90,56 @@ export async function getNewArrivals(): Promise<Product[]> {
   const rows = await findProducts(inArray(products.slug, NEW_ARRIVAL_SLUGS));
   const bySlug = new Map(rows.map((row) => [row.slug, toProduct(row)]));
   return NEW_ARRIVAL_SLUGS.flatMap((slug) => bySlug.get(slug) ?? []);
+}
+
+/** Newest products first. Rows inserted together (the seed) fall back to id. */
+export async function getLatestProducts(limit = 24): Promise<Product[]> {
+  "use cache";
+  cacheProducts();
+
+  const rows = await findProducts(undefined, {
+    orderBy: [desc(products.createdAt), desc(products.id)],
+    limit,
+  });
+  return rows.map(toProduct);
+}
+
+export async function getCategories(): Promise<Category[]> {
+  "use cache";
+  cacheProducts();
+
+  return db
+    .select({ slug: categories.slug, name: categories.name })
+    .from(categories)
+    .orderBy(asc(categories.id));
+}
+
+/** The category and its products, or undefined when the slug is unknown. */
+export async function getCategoryWithProducts(
+  slug: string,
+): Promise<{ category: Category; products: Product[] } | undefined> {
+  "use cache";
+  cacheProducts();
+
+  const [category] = await db
+    .select({ id: categories.id, slug: categories.slug, name: categories.name })
+    .from(categories)
+    .where(eq(categories.slug, slug));
+  if (!category) return undefined;
+
+  const rows = await findProducts(eq(products.categoryId, category.id));
+  return {
+    category: { slug: category.slug, name: category.name },
+    products: rows.map(toProduct),
+  };
+}
+
+/**
+ * Matches against the cached catalog, so a query never hits the database and
+ * the catalog is small enough to filter in memory.
+ */
+export async function searchCatalog(query: string): Promise<Product[]> {
+  return searchProducts(await getProducts(), query);
 }
 
 export async function getFeaturedProduct(): Promise<Product> {

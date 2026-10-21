@@ -82,7 +82,10 @@ async function ProductDetails({
             </li>
             <li aria-hidden>/</li>
             <li>
-              <Link href="/#new-in" className="link-quiet">
+              <Link
+                href={`/categories/${product.categorySlug}`}
+                className="link-quiet"
+              >
                 {product.category}
               </Link>
             </li>

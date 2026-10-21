@@ -87,11 +87,13 @@ function SectionHeading({
   eyebrow,
   title,
   action,
+  href = "#",
 }: {
   id: string;
   eyebrow: string;
   title: string;
   action?: string;
+  href?: string;
 }) {
   return (
     <div className="mb-8 flex items-end justify-between gap-4 md:mb-12">
@@ -102,7 +104,7 @@ function SectionHeading({
         </h2>
       </div>
       {action ? (
-        <a href="#" className="btn btn-text shrink-0">
+        <a href={href} className="btn btn-text shrink-0">
           {action}
         </a>
       ) : null}
@@ -160,6 +162,7 @@ async function NewArrivals() {
         eyebrow="Autumn–Winter 2026"
         title="New in"
         action="View all"
+        href="/new-arrivals"
       />
       <ul className="grid-products">
         {newArrivals.map((product) => (
