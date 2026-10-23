@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { navigation } from "@/lib/catalog";
+import { CartCount } from "./cart/cart-count";
 import { BagIcon, CloseIcon, MenuIcon, SearchIcon, UserIcon } from "./icons";
 
 // Sticky header: menu + nav | wordmark | search, account, bag.
@@ -41,26 +43,23 @@ export function SiteHeader() {
         >
           <SearchIcon />
         </Link>
-        <a
-          href="#"
+        <Link
+          href="/account"
           className="inline-flex size-11 items-center justify-center max-md:hidden"
           aria-label="Account"
         >
           <UserIcon />
-        </a>
-        <a
-          href="#"
+        </Link>
+        <Link
+          href="/cart"
           className="relative -mr-3 inline-flex size-11 items-center justify-center"
-          aria-label="Shopping bag, 0 items"
         >
           <BagIcon />
-          <span
-            className="absolute top-2 right-1.5 grid size-4 place-items-center rounded-full bg-ink text-[0.5625rem] leading-none text-canvas"
-            aria-hidden
-          >
-            0
-          </span>
-        </a>
+          <span className="sr-only">Shopping bag</span>
+          <Suspense fallback={null}>
+            <CartCount />
+          </Suspense>
+        </Link>
       </div>
 
       <div
@@ -94,15 +93,18 @@ export function SiteHeader() {
             ))}
           </ul>
           <ul className="mt-8 flex flex-col gap-1">
-            {["My account", "Wishlist", "Client services", "Store locator"].map(
-              (label) => (
-                <li key={label}>
-                  <a href="#" className="nav-link text-ink-muted">
-                    {label}
-                  </a>
-                </li>
-              ),
-            )}
+            {[
+              { label: "My account", href: "/account" },
+              { label: "Wishlist", href: "#" },
+              { label: "Client services", href: "#" },
+              { label: "Store locator", href: "#" },
+            ].map(({ label, href }) => (
+              <li key={label}>
+                <a href={href} className="nav-link text-ink-muted">
+                  {label}
+                </a>
+              </li>
+            ))}
           </ul>
         </nav>
       </div>

@@ -116,6 +116,7 @@ async function ProductDetails({
             </p>
 
             <PurchasePanel
+              slug={product.slug}
               productName={product.name}
               colors={product.colors}
               sizes={product.sizes}

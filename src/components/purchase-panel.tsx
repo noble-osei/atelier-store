@@ -1,6 +1,8 @@
 "use client";
 
-import { useId, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useId, useRef, useState, useTransition, type FormEvent } from "react";
+import { addToCart } from "@/app/cart/actions";
 import {
   getStockState,
   type Color,
@@ -11,6 +13,7 @@ import { HeartIcon } from "./icons";
 import { StockStatus, stockLabel } from "./stock-status";
 
 type PurchasePanelProps = {
+  slug: string;
   productName: string;
   colors: Color[];
   sizes: Size[];
@@ -19,8 +22,10 @@ type PurchasePanelProps = {
 };
 
 // Color and size selection, stock for the chosen size, and the bag action.
-// The bag is not wired to a cart yet: adding only confirms the selection.
+// Stock shown here comes from the cached catalog and can lag, so the server
+// re-checks it when adding (addToCart) and reports what is really available.
 export function PurchasePanel({
+  slug,
   productName,
   colors,
   sizes,
@@ -33,6 +38,8 @@ export function PurchasePanel({
   const [size, setSize] = useState<string | null>(oneSize ? sizes[0].label : null);
   const [error, setError] = useState(false);
   const [added, setAdded] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
 
   const soldOut = stock.status === "out_of_stock";
@@ -46,12 +53,24 @@ export function PurchasePanel({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     if (!size) {
       setError(true);
       firstSizeRef.current?.focus();
       return;
     }
-    setAdded(true);
+    setAdded(false);
+    setAddError(null);
+    startTransition(async () => {
+      const result = await addToCart({
+        slug,
+        size,
+        color: color ?? null,
+        quantity: 1,
+      });
+      if (result.ok) setAdded(true);
+      else setAddError(result.error);
+    });
   }
 
   const firstAvailable = sizes.findIndex((s) => s.stock > 0);
@@ -161,9 +180,9 @@ export function PurchasePanel({
           <button
             type="submit"
             className="btn btn-primary flex-1"
-            disabled={soldOut}
+            disabled={soldOut || pending}
           >
-            {soldOut ? "Sold out" : "Add to bag"}
+            {soldOut ? "Sold out" : pending ? "Adding…" : "Add to bag"}
           </button>
           <button
             type="button"
@@ -180,11 +199,20 @@ export function PurchasePanel({
             Find in store
           </a>
         ) : null}
-        <p role="status" className="min-h-5 text-body-sm">
-          {added
-            ? `Added to bag: ${productName}${oneSize ? "" : `, size ${size}`}${colors.length > 1 ? `, ${color}` : ""}.`
-            : ""}
+        <p
+          role={addError ? "alert" : "status"}
+          className={`min-h-5 text-body-sm ${addError ? "text-danger" : ""}`}
+        >
+          {addError ??
+            (added
+              ? `Added to bag: ${productName}${oneSize ? "" : `, size ${size}`}${colors.length > 1 ? `, ${color}` : ""}.`
+              : "")}
         </p>
+        {added ? (
+          <Link href="/cart" className="btn btn-secondary btn-block">
+            View bag
+          </Link>
+        ) : null}
       </div>
     </form>
   );
