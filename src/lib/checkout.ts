@@ -1,9 +1,9 @@
 import "server-only";
 
-import { revalidateTag } from "next/cache";
 import type Stripe from "stripe";
 
 import type { CartView } from "./cart";
+import { revalidateProducts } from "./catalog-cache";
 import {
   CHECKOUT_HOLD_MINUTES,
   CURRENCY,
@@ -26,11 +26,6 @@ import { getSiteOrigin, getStripe } from "./stripe";
 // Stripe (collecting the money). Called from Server Actions and Route
 // Handlers only: it revalidates the product cache, which cannot happen
 // while rendering.
-
-/** Stock changed, so cached product pages must stop showing the old numbers. */
-export function revalidateProducts() {
-  revalidateTag("products", { expire: 0 });
-}
 
 /* Starting checkout ------------------------------------------------------ */
 

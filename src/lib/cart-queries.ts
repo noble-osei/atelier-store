@@ -38,7 +38,10 @@ export async function getCartProducts(
       priceCents: row.priceCents,
       image,
       colors: row.colors.map((c) => c.name),
-      stock: new Map(row.stock.map((s) => [s.size, s.quantity])),
+      // A hidden product has nothing to sell: the cart shows its lines as
+      // unavailable and checkout refuses them. It stays in the result because
+      // order pages still need its photo.
+      stock: new Map(row.archivedAt ? [] : row.stock.map((s) => [s.size, s.quantity])),
     });
   }
   return result;

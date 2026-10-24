@@ -6,6 +6,7 @@ import { neon } from "@neondatabase/serverless";
 import { sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 
+import { slugify } from "../lib/slug";
 import * as schema from "./schema";
 import { seedProducts } from "./seed-data";
 
@@ -17,13 +18,6 @@ if (!databaseUrl) throw new Error("DATABASE_URL is not set");
 // Own client: ./index.ts imports "server-only", which throws outside Next.
 const db = drizzle({ client: neon(databaseUrl), schema });
 const { categories, products, productStock } = schema;
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 async function seed() {
   await db.execute(

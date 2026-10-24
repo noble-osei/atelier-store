@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, desc, eq, inArray, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, type SQL } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
@@ -19,7 +19,8 @@ const NEW_ARRIVAL_SLUGS = [
   "suede-bomber",
 ];
 
-const FEATURED_SLUG = "atelier-top-handle";
+// The home page needs this product, so admins cannot hide it.
+export const FEATURED_SLUG = "atelier-top-handle";
 
 // Product data is the same for every visitor, so reads are cached and pages
 // stay prerendered. Stock can lag by up to the cache life; call
@@ -29,13 +30,14 @@ function cacheProducts() {
   cacheLife("hours");
 }
 
-// Every read loads the category and stock rows (in size order) with the product.
+// Every read loads the category and stock rows (in size order) with the product,
+// and skips products an admin has hidden from the storefront.
 function findProducts(
   where?: SQL,
   { orderBy = [asc(products.id)], limit }: { orderBy?: SQL[]; limit?: number } = {},
 ) {
   return db.query.products.findMany({
-    where,
+    where: and(isNull(products.archivedAt), where),
     with: {
       category: true,
       stock: { orderBy: asc(productStock.position) },

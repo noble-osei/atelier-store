@@ -5,6 +5,7 @@ import {
   getProductStock,
   type Product,
 } from "@/lib/products";
+import { StockStatus } from "./stock-status";
 
 type ProductCardProps = {
   product: Product;
@@ -18,7 +19,8 @@ export function ProductCard({
   priority = false,
 }: ProductCardProps) {
   const [image] = product.images;
-  const soldOut = getProductStock(product).status === "out_of_stock";
+  const stock = getProductStock(product);
+  const soldOut = stock.status === "out_of_stock";
   const badge = soldOut ? "Sold out" : product.badge;
 
   return (
@@ -48,6 +50,8 @@ export function ProductCard({
         <span className="type-price text-caption text-ink-muted">
           {formatPrice(product.price)}
         </span>
+        {/* Sold out already has its badge; in stock needs no note. */}
+        {stock.status === "low_stock" ? <StockStatus state={stock} /> : null}
       </div>
     </Link>
   );

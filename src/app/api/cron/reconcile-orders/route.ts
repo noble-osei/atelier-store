@@ -1,7 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
 
 import { releaseOrder, getStalePendingOrders } from "@/lib/orders";
-import { revalidateProducts, settleSessionById } from "@/lib/checkout";
+import { revalidateProducts } from "@/lib/catalog-cache";
+import { settleSessionById } from "@/lib/checkout";
 
 // Safety net for missed webhooks. Run every ~10 minutes from the host's
 // scheduler with `Authorization: Bearer $CRON_SECRET`. It looks at pending

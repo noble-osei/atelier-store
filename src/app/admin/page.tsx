@@ -1,30 +1,36 @@
-import type { Metadata } from "next";
+import Link from "next/link";
 
+import { ADMIN_SECTIONS } from "@/components/admin/sections";
+import { AdminPageHeader } from "@/components/admin/page-header";
+import { ArrowRightIcon } from "@/components/icons";
 import { requireAdmin } from "@/lib/session";
 
-export const metadata: Metadata = {
-  title: "Admin",
-  robots: { index: false },
-};
-
-// Deliberately blocking (no Suspense shell): the role is checked before any
-// response is streamed, so signed-in non-admins get a real 404 status instead of
-// a 200 with a not-found body. Every admin page and Server Action must call
-// requireAdmin itself.
+// Every page under /admin calls requireAdmin first (see the layout).
+// Blocking on purpose: see the admin layout.
 export const instant = false;
 
 export default async function AdminPage() {
   const { user } = await requireAdmin("/admin");
 
   return (
-    <section className="section container-prose flex flex-col gap-8">
-      <header className="flex flex-col gap-3">
-        <p className="type-eyebrow">Admin</p>
-        <h1 className="type-editorial text-display">Administration</h1>
-      </header>
-      <p className="text-body text-ink-muted">
-        Signed in as {user.email}. Admin tools will live here.
-      </p>
-    </section>
+    <div className="flex flex-col gap-8">
+      <AdminPageHeader title="Overview" description={`Signed in as ${user.email}.`} />
+      <ul className="border-t border-line">
+        {ADMIN_SECTIONS.filter((section) => section.href !== "/admin").map((section) => (
+          <li key={section.href}>
+            <Link
+              href={section.href}
+              className="flex items-center justify-between gap-4 border-b border-line py-5 hover:bg-surface"
+            >
+              <span className="flex flex-col gap-1">
+                <span className="type-label">{section.label}</span>
+                <span className="text-caption text-ink-muted">{section.description}</span>
+              </span>
+              <ArrowRightIcon className="size-5 shrink-0" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

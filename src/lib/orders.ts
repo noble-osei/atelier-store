@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -13,6 +13,7 @@ import {
   type ShippingAddress,
 } from "@/db/schema";
 import { CURRENCY } from "./checkout-config";
+import { pgError } from "./pg-error";
 
 // Order persistence. Everything here is database-only (no Stripe, no Next
 // caches) so the state transitions can be exercised on their own. The Neon HTTP
@@ -32,22 +33,6 @@ export type OrderItemInput = {
   unitPriceCents: number;
   quantity: number;
 };
-
-function pgError(error: unknown): { code?: string; constraint?: string } {
-  // Drizzle wraps driver errors, keeping the original in `cause`.
-  let current: unknown = error;
-  for (let depth = 0; depth < 3 && typeof current === "object" && current; depth++) {
-    const { code, constraint, cause } = current as Record<string, unknown>;
-    if (typeof code === "string") {
-      return {
-        code,
-        constraint: typeof constraint === "string" ? constraint : undefined,
-      };
-    }
-    current = cause;
-  }
-  return {};
-}
 
 /** Units to take off (or put back on) the shelf, one entry per product and size. */
 function stockUse(items: Pick<OrderItemInput, "productId" | "size" | "quantity">[]) {
@@ -269,21 +254,50 @@ export async function markPaid(publicId: string, paid: PaidDetails): Promise<Mar
   }
 
   // Paid after the hold ended (expired or failed): take the stock again if it is
-  // still there. The check constraint rejects the batch when it is not.
+  // still there. The status flip and the stock decrement are one statement, and
+  // the decrement only covers the order this call flipped, so a concurrent settle
+  // that lost the race takes nothing. The check constraint fails the whole
+  // statement (flip included) when the stock is gone.
   try {
-    await db.batch([
-      ...takeStock(stockUse(order.items)),
-      db
-        .update(orders)
-        .set({ ...details, stockReleasedAt: null })
-        .where(
-          and(
-            eq(orders.publicId, publicId),
-            inArray(orders.paymentStatus, ["expired", "failed"]),
-          ),
-        ),
-    ] as unknown as Batch);
-    return { outcome: "paid", stockChanged: true };
+    const result = await db.execute(sql`
+      with flipped as (
+        update ${orders}
+        set payment_status = 'paid'::payment_status,
+            paid_at = now(),
+            stock_released_at = null,
+            updated_at = now(),
+            stripe_checkout_session_id = ${details.stripeCheckoutSessionId},
+            stripe_payment_intent_id = ${details.stripePaymentIntentId},
+            email = ${details.email},
+            shipping_name = ${details.shippingName},
+            shipping_address = ${details.shippingAddress ? JSON.stringify(details.shippingAddress) : null}::jsonb
+        where public_id = ${publicId} and payment_status in ('expired', 'failed')
+        returning id
+      ),
+      taken as (
+        update ${productStock} as ps
+        set quantity = ps.quantity - agg.quantity
+        from (
+          select product_id, size, sum(quantity)::int as quantity
+          from ${orderItems}
+          where order_id in (select id from flipped)
+          group by product_id, size
+        ) as agg
+        where ps.product_id = agg.product_id and ps.size = agg.size
+        returning 1
+      )
+      select count(*)::int as flipped from flipped
+    `);
+    const flipped = Number((result.rows[0] as { flipped: number } | undefined)?.flipped ?? 0);
+    if (flipped > 0) return { outcome: "paid", stockChanged: true };
+
+    // Lost a race with another settle of the same order.
+    const [now] = await db
+      .select({ paymentStatus: orders.paymentStatus })
+      .from(orders)
+      .where(eq(orders.publicId, publicId));
+    if (now?.paymentStatus === "paid") return { outcome: "already_paid" };
+    return markPaid(publicId, paid);
   } catch (error) {
     const { code, constraint } = pgError(error);
     if (code === "23514" && constraint === "product_stock_quantity_non_negative") {

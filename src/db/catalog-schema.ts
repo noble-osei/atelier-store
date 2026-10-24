@@ -48,6 +48,8 @@ export const products = pgTable(
     colors: jsonb("colors").$type<ProductColor[]>().notNull().default([]),
     /** First image is the primary shot used in grids. */
     images: jsonb("images").$type<Image[]>().notNull(),
+    /** Set while the product is hidden from the storefront. Rows are never deleted. */
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
